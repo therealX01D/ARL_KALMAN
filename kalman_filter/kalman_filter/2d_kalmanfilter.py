@@ -3,7 +3,7 @@ from rclpy.node import Node
 from nav_msgs.msg import Odometry
 from geometry_msgs.msg import Twist
 import numpy as np
-from math import cos,sin
+from math import cos,sin,atan2
 from numpy.linalg import inv
 
 class KalmanFilter(Node):
@@ -36,7 +36,7 @@ class KalmanFilter(Node):
         # self.prevpos=np.zeros((3,1))
         # self.elevpos =np.zeros((3,1))
         # Subscribe to the /odom_noise topic
-        self.subscription2 = self.create_subscription(Twist,
+        self.subscription2 = self.create_subscription(Odometry,
                                                       '/odom',
                                                       self.odom_callback2,
                                                       1)
@@ -51,12 +51,10 @@ class KalmanFilter(Node):
     def odom_callback2(self, msg):
         # Extract the position measurements from the Odometry message
 
-        self.veli=np.array([[msg.linear.x]
-         ,[msg.linear.y]
-         ,[msg.linear.z]])
-        yaw = 2.0 * (msg.pose.pose.orientation.w * msg.pose.pose.orientation.z + msg.pose.pose.orientation.x * msg.pose.pose.orientation.y), 1.0 - 2.0 * (msg.pose.pose.orientation.y * msg.pose.pose.orientation.y + msg.pose.pose.orientation.z * msg.pose.pose.orientation.z)
-        self.A[0, 2] = self.dt * self.veli[0,0]*cos(yaw)
-        self.A[1, 3] = self.dt * self.veli[0,0]*sin(yaw)
+        
+        yaw = atan2(2.0 * (msg.pose.pose.orientation.w * msg.pose.pose.orientation.z + msg.pose.pose.orientation.x * msg.pose.pose.orientation.y), 1.0 - 2.0 * (msg.pose.pose.orientation.y * msg.pose.pose.orientation.y + msg.pose.pose.orientation.z * msg.pose.pose.orientation.z))
+        self.A[0, 2] = self.dt * msg.twist.twist.linear.x *cos(yaw)
+        self.A[1, 3] = self.dt * msg.twist.twist.linear.x*sin(yaw)
 
     def odom_callback(self, msg):
         measurements=np.array([[msg.pose.pose.position.x] ,[msg.pose.pose.position.y]])
